@@ -8,12 +8,13 @@ import top.hookvip.wxtablet.data.HostInfo
 import top.hookvip.wxtablet.factory.toDexMethod
 import java.lang.reflect.Method
 import java.lang.reflect.Modifier
+import kotlin.concurrent.thread
 
 object WXConfig {
     private object MethodCheckPadTablet : DescriptorData("WXConfig.MethodCheckPadTablet")
     private object MethodVisibleLoginButton : DescriptorData("WXConfig.MethodVisibleLoginButton")
 
-    private val config by lazy { FastKv("WXConfig") }
+    private val config by lazy { FastKv("WXMethods") }
 
     data class Methods(val checkPadTablet: Method?, val visibleLoginButton: Method?)
 
@@ -78,7 +79,14 @@ object WXConfig {
                 },
             )
         } finally {
-            runCatching { bridge?.close() }.onFailure { YLog.warn("Cannot close DexKit bridge", it) }
+            bridge?.let { dexKit ->
+                // 原生资源释放不能阻塞微信的主线程初始化。
+                thread(name = "WeChatTablet-DexKitClose", isDaemon = true) {
+                    runCatching { dexKit.close() }
+                        .onSuccess { YLog.info("Closed DexKit bridge") }
+                        .onFailure { YLog.warn("Cannot close DexKit bridge", it) }
+                }
+            }
         }
     }
 }
