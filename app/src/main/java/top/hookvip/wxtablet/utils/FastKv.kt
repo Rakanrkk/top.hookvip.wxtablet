@@ -36,15 +36,14 @@ class FastKv @JvmOverloads constructor(
         }
     }
 
-    fun getStringPut(key: String, def: () -> String?): String? {
-        if (kv.contains(key)) {
-            return kv.getString(key)
-        }
-        val value = def()
-        if (value != null) {
-            kv.putString(key, value)
-        }
-        return value
+    fun getString(key: String): String? = kv.getString(key)
+
+    fun putString(key: String, value: String) {
+        kv.putString(key, value)
+    }
+
+    fun remove(key: String) {
+        kv.remove(key)
     }
 
 
